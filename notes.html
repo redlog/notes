@@ -1,0 +1,244 @@
+<!doctype html>
+<html>
+	<head>
+		<title>
+			Notes
+			{% if page_title|length > 0 %}
+			:
+			{% endif %}
+			{{ page_title }}
+		</title>
+		<link rel="stylesheet" href="{{ url_for('static', filename = 'notes.css') }}" />
+		<link rel="stylesheet" href="http://code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css" />
+		<script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+		<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
+		<script src="{{ url_for('static', filename = 'notes.js') }}" language="javascript"></script>
+		<style>
+			a { color: {{ link_color }} }
+			.alert { color: {{ alert_color }} }
+			.focal { color: {{ focal_color }} }
+		</style>
+	</head>
+
+	<body onload="javascript:page_load('{{ context }}')">
+
+		<!-- header bar -->
+		<div style="background-color: #dddddd; padding: 12px" id="header_div" name="header_div">
+			<table style="width: 100%">
+				<tr>
+					<td style="width: 20%"><b><a href="/">Notes</a></b></td>
+					<td style="width: 60%" align="center">
+						<!-- TODO: make this table divs so the form doesn't complain -->
+						<table><!-- table to align form elements -->
+							<form action="/" method="GET">
+							<tr>
+								<td>
+								<b>Search: </b>
+							</td><td>
+								<input name="search" size="50" type="text">
+							</td><td>
+								<input type="submit" value="Go" />
+
+							</td>
+							</tr>
+							</form><!-- search form -->
+							<form action="/" method="GET">
+							<tr>
+								<td>
+								<b>Filter: </b>
+							</td><td>
+								<input name="filter" size="50" type="text">
+							</td><td>
+								<input type="submit" value="Go" />
+
+							</td>
+							</tr>
+							</form><!-- filter form -->
+						</table><!-- table to align form elements -->
+
+					</td>
+					<td align="right" style="width: 20%">
+						<a href="/new">new note</a> |
+						<a href="/reindex">reindex</a> |
+						<a href="/exit">exit</a>
+					</td>
+				</tr>
+			</table>
+		</div><!-- end of header bar -->
+
+		<div style="display: flex"><!-- main div -->
+
+			{% if context == 'list' %}
+
+			<!-- tags div -->
+			<div style="background-color: #c0c0c0; padding: 12px;" name="tags_div" id="tags_div">
+			<b>All Tags</b>
+				<ul>
+				{% for tag_quot, tag, ct in all_tags %}
+				<li><a href="/?filter={{ tag_quot }}">{{ tag }}</a> ({{ ct }})</li>
+				{% endfor %}
+				</ul>
+			</div>
+
+			<!-- people div -->
+			<div style="background-color: #c0c0c0; padding: 12px;" name="people_div" id="people_div">
+			<b>All People</b>
+				<ul>
+				{% for p_quot, p, ct in all_people %}
+				<li><a href="/?filter={{ p_quot }}">{{ p }}</a> ({{ ct }})</li>
+				{% endfor %}
+				</ul>
+			</div>
+
+			<!-- content div -->
+			<div style="flex-grow: 1; padding: 12px;" name="content_div" id="content_div">
+
+				<!-- navigation table -->
+				<table width="100%">
+					<tr>
+						<td colspan="3">
+        				<div class="focal" style="text-align: center; font-size: small; text-decoration: italic">
+							Showing notes {{ min_note + 1 }}-{{ max_note + 1 }} of {{ total_notes }}
+						</div>
+						{% if filter_str|length > 0 %}
+        				<div class="alert" style="text-align: center; font-size: small; text-decoration: italic">
+							Filter: {{ filter_str }}
+						</div>
+						{% endif %} {# filterstr #}
+
+						{% if search_str|length > 0 %}
+        				<div class="alert" style="text-align: center; font-size: small; text-decoration: italic">
+							Search: {{ search_str }}
+						</div>
+						{% endif %} {# search str #}
+						</td>
+
+					</tr>
+					<tr>
+						<td align="left">
+							{% if pg > 1 %}
+							<a href="/?filter={{ filter_str }}&search={{ search_str }}&nn={{ nn }}&pg={{ pg - 1 }}">Prev</a>
+							{% endif %}
+						</td>
+						<td>
+							<p style="text-align: center;">
+							Pages:
+							{% for n in range(1, n_pages + 1) %}
+								{% if n == pg %}
+								{{ n }}
+								{% else %}
+								<a href="/?filter={{ filter_str }}&search={{ search_str }}&nn={{ nn }}&pg={{ n }}">{{ n }}</a>
+								{% endif %}
+							{% endfor %}
+							</p>
+						</td>
+						<td align="right">
+							{% if pg < n_pages %}
+							<a href="/?filter={{ filter_str }}&search={{ search_str }}&nn={{ nn }}&pg={{ pg + 1 }}">Next</a>
+							{% endif %}
+						</td>
+					</tr>
+					<tr>
+						<td colspan="3" style="align:center">
+							<div style="text-align: center">
+							<a href="javascript:expand_messages();">expand</a> | <a href="javascript:collapse_messages();">collapse</a>
+							</div>
+						</td>
+					</tr>
+				</table><!-- navigation -->
+				<hr />
+
+				<div style="align:center; display: flex">
+				<img src="data:image/png;base64,{{ imgbytes }}" />
+				</div>
+
+				<!-- TODO: related tags -->
+
+				<!-- note text -->
+				{% for note in notes_list %}
+				<p>
+				<div>
+					<a style="color: {{ focal_color }}" href="/note?id={{ note.timestamp }}">{{ note.title }}</a></b>
+					<br />
+					<span style="font-size: smaller">
+						{{ note.dttm_str }} &nbsp; | &nbsp;
+						{% for tag_quot, tag in note.tag_list %}
+							<a href="/?filter={{ tag_quot }}">{{ tag }}</a> &nbsp; | &nbsp;
+						{% endfor %}
+						{% for p_quot, p in note.people_list %}
+							<a href="/?filter={{ p_quot }}">{{ p }}</a> &nbsp; | &nbsp;
+						{% endfor %}
+						<a href="/edit?id={{ note.timestamp }}">edit</a> &nbsp; | &nbsp; <a href="/clone?id={{ note.timestamp }}">clone</a>
+					</span>
+				</div>
+				<div class="msg_body">{{ note.note_body_md|safe }}<hr /></div>
+				</p>
+				{% endfor %}
+
+			</div><!-- end of content div -->
+
+			{% endif %}  <!-- context = list -->
+
+			{% if context == 'read' %}
+
+			<div style="flex-grow: 1; padding: 12px;" name="read_div" id="read_div">
+
+			Tags:
+			{% for tag_quot, tag in tag_list %}
+			<a href="/?filter={{ tag_quot }}">{{ tag }}</a>
+			{% endfor %}
+			<br />
+            Attendees:
+			{% for p_quot, p in people_list %}
+			<a href="/?filter={{ p_quot }}">{{ p }}</a>
+			{% endfor %}
+			<br />
+			Created: {{ timestamp_str }}<br />
+			Modified: {{ last_edit_dttm }}</i> <br />
+			Filename: {{ filename }}<br />
+
+			<a href="/edit?id={{ id }}">edit</a> &nbsp;
+			| &nbsp; <a href="/clone?id={{ id }}">clone</a> &nbsp;
+			| &nbsp; <a class="alert" href="javascript:expand_delete();">delete</a>
+			<form id="delete_form" style="display: none" name="delete_form" action="/delete" method="POST",
+				enctype="application/x-www-form-urlencoded">
+			<br /><br />
+			Type "delete" to confirm:
+			<input type="hidden" name="id" id="id" value="{{ id }}" />
+			<input type="text" name="delete_text" id="delete_text" />
+			<input type="submit" value="Delete" />
+			</form>
+			<hr />
+
+			{{ note_body_md|safe }}
+			<hr />
+
+
+			</div> <!-- read_div -->
+
+			{% endif %} <!-- context = read -->
+
+			{% if context == 'edit' %}
+
+				<div id="people_autocomplete_div" style="display:none">
+                <div style="background-color:#dddddd;padding:8px">
+                <b>Name Search: </b>
+                <input type="text" id="people_autocomplete_text_field" name="people_autocomplete_text_field">
+                </div>
+                </div>
+
+				<div style="flex-grow: 1; padding: 12px;" name="edit_div" id="edit_div">
+                <form id="save_form" action="/save" method="POST" enctype="application/x-www-form-urlencoded">
+                <input type="hidden" id="id" name="id" value="{{ id }}" />
+                <textarea style="width: 100%; height: 80vh;" form="save_form" id="text" name="text">{{ note_body }}</textarea>
+                <br />
+                <input type="submit" value="Save" />
+                </form>
+				</div>
+
+			{% endif %} <!-- context = edit -->
+
+		</div><!-- main div -->
+
+	</body>
+</html>

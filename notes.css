@@ -1,0 +1,5 @@
+A { text-decoration: none; }
+A:hover {text-decoration: underline; }
+body { margin: 0px; }
+.msg_body { font-size: smaller; display: none; }
+form { margin: 0em; }
