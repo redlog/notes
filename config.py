@@ -14,6 +14,9 @@ class Config(object):
         self.DEFAULT_NN = 10
         self.HTTP_PORT = 8080
 
+        self.PLOT_LIMIT_DAYS = 30
+        self.PLOT_LIMIT_WEEKS = 30
+
     def load(self) -> None:
         with open(os.path.join(os.getcwd(), "config.json"), "r") as fp:
             b = fp.read()
@@ -25,6 +28,9 @@ class Config(object):
             self.FOCAL_COLOR = cfg.get('FOCAL_COLOR', self.FOCAL_COLOR)
             self.DEFAULT_NN = cfg.get('DEFAULT_NN', self.DEFAULT_NN)
             self.HTTP_PORT = cfg.get('HTTP_PORT', self.HTTP_PORT)
+
+            self.PLOT_LIMIT_DAYS = cfg.get('PLOT_LIMIT_DAYS', self.PLOT_LIMIT_DAYS)
+            self.PLOT_LIMIT_WEEKS = cfg.get('PLOT_LIMIT_DAYS', self.PLOT_LIMIT_WEEKS)
 
     def get_num_notes_per_page(self) -> int:
         return self.DEFAULT_NN

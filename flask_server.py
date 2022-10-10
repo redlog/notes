@@ -137,6 +137,12 @@ def list_notes() -> (str, int):
     all_tags = [(quote(t[0]), t[0], t[1]) for t in idx.get_tags()]
     all_people = [(quote(p[0]), p[0], p[1]) for p in idx.get_people()]
 
+    # sort tags by count, descending
+    all_tags.sort(key=itemgetter(2), reverse=True)
+
+    # sort people by name
+    all_people.sort(key=itemgetter(0))
+
     imgbytes = make_date_histogram(note_subset, cfg.get_focal_color())
 
     notes_list = []
@@ -211,10 +217,14 @@ def edit_note() -> (str, int):
     except FileNotFoundError:
         return "<html><body>File not found: {0}</body></html>".format(id_), 404
 
+    pl = idx.get_people()
+    pl = list(map(itemgetter(0), pl))
+
     d = {'context': 'edit',
          'id': id_,
          'note_body': note_body,
          'page_title': note.title,
+         'people_list': pl,
          'link_color': cfg.get_link_color(), 'alert_color': cfg.get_alert_color(), 'focal_color': cfg.get_focal_color()
          }
 
