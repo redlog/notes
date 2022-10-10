@@ -10,6 +10,31 @@ function expand_messages() {
     }
 }
 
+
+function display_helper(a, b) {
+    var comp = document.querySelectorAll('.compact');
+    for (var i = 0; i < comp.length; i++) {
+        comp[i].style.display = a;
+    }
+    var comf = document.querySelectorAll('.comfortable');
+    for (var i = 0; i < comf.length; i++) {
+        comf[i].style.display = b;
+    }
+
+}
+
+
+function display_compact()
+{
+    display_helper("", "none");
+}
+
+function display_comfortable()
+{
+    display_helper("none", "");
+}
+
+
 function collapse_messages() {
     var messages = document.querySelectorAll(".msg_body");
     for (var i = 0; i < messages.length; i++) {
@@ -77,6 +102,11 @@ function people_autocomplete_listener(e)
 
 function page_load(context)
 {
+    if (context == 'list')
+    {
+        display_comfortable();
+    }
+
     if (context == "edit")
     {
         document.getElementById('text').addEventListener('keydown', text_area_listener);
@@ -86,8 +116,6 @@ function page_load(context)
 }
 
 $( function() {
-    var availablePeople = ["PEOPLE_LIST_GOES_HERE"];
-
     $( "#people_autocomplete_text_field" ).autocomplete(
         {
             source: availablePeople
@@ -105,4 +133,39 @@ function show_people_autocomplete()
 
     document.getElementById("people_autocomplete_div").style.display = "inline";
     d.focus();
+}
+
+
+function table_sort(table_id, tbody_id, recordkeeper)
+{
+    var table = $('#' + table_id);
+    var tbody = $('#' + tbody_id);
+
+    sort_order_element = table_id + '_' + recordkeeper;
+    //alert("sort order element = " + sort_order_element);
+    sort_order = document.getElementById(sort_order_element).value;
+
+    //alert("sorting " + table_id + "-" + tbody_id + " by " + recordkeeper + " (" + sort_order + ")")
+
+    tbody.find('tr').sort(
+        function(a, b)
+        {
+            //alert("a = " + a + "   " + "b = " + b);
+            if(sort_order == 'asc')
+            {
+                return $('td:first', a).text().localeCompare($('td:first', b).text());
+            }
+            else
+            {
+                return $('td:first', b).text().localeCompare($('td:first', a).text());
+            }
+
+        }
+    ).appendTo(tbody);
+
+    if(sort_order == "asc") {
+        document.getElementById(table_id + '_' + recordkeeper).value = "desc";
+    } else {
+        document.getElementById(table_id + '_' + recordkeeper).value = "asc";
+    }
 }

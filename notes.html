@@ -2,7 +2,11 @@
 <html>
 	<head>
 		<title>
+			{% if context == 'edit' %}
+			Editing
+			{% else %}
 			Notes
+			{% endif %}
 			{% if page_title|length > 0 %}
 			:
 			{% endif %}
@@ -12,6 +16,13 @@
 		<link rel="stylesheet" href="http://code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css" />
 		<script src="https://code.jquery.com/jquery-3.6.0.js"></script>
 		<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
+		<script language="javascript">
+				{% if context == 'edit' %}
+			    var availablePeople = {{ people_list|tojson }};
+				{% else %}
+				var availablePeople = "";
+				{% endif %}
+		</script>
 		<script src="{{ url_for('static', filename = 'notes.js') }}" language="javascript"></script>
 		<style>
 			a { color: {{ link_color }} }
@@ -66,28 +77,52 @@
 			</table>
 		</div><!-- end of header bar -->
 
-		<div style="display: flex"><!-- main div -->
+		<div><!-- main div -->
 
 			{% if context == 'list' %}
 
+			<div style="display: flex;" id="list_div" name="list_div"><!-- list div -->
+
 			<!-- tags div -->
-			<div style="background-color: #c0c0c0; padding: 12px;" name="tags_div" id="tags_div">
+			<div style="flex-grow: 0; background-color: #c0c0c0; padding: 12px;" name="tags_div" id="tags_div">
 			<b>All Tags</b>
-				<ul>
+				<br />
+				<span style="font-size: small"><a href="#" onclick="table_sort('all_tag_table', 'all_tag_tbody', 'name_order');">abc</a></span>
+				<span style="font-size: small">|</span>
+				<span style="font-size: small"><a href="#" onclick="table_sort('all_tag_table', 'all_tag_tbody', 'count_order');">123</a></span>
+				<span style="font-size: small"><hr /></span>
+				<div id="all_tag_table_wrapper">
+				<table id="all_tag_table" class="counter_table">
+					<tbody id="all_tag_tbody">
 				{% for tag_quot, tag, ct in all_tags %}
-				<li><a href="/?filter={{ tag_quot }}">{{ tag }}</a> ({{ ct }})</li>
+					<tr><td><a href="/?filter={{ tag_quot }}">{{ tag }}</a></td><td>{{ ct }}</td></tr>
 				{% endfor %}
-				</ul>
+					</tbody>
+				</table>
+				<input type="hidden" id="all_tag_table_name_order" value="asc">
+				<input type="hidden" id="all_tag_table_count_order" value="desc">
+				</div><!-- all tag table div -->
 			</div>
 
 			<!-- people div -->
-			<div style="background-color: #c0c0c0; padding: 12px;" name="people_div" id="people_div">
+			<div style="flex-grow: 0; background-color: #c0c0c0; padding: 12px;" name="people_div" id="people_div">
 			<b>All People</b>
-				<ul>
+				<br />
+				<span style="font-size: small"><a href="#" onclick="table_sort('all_people_table', 'all_people_tbody', 'name_order');">abc</a></span>
+				<span style="font-size: small">|</span>
+				<span style="font-size: small"><a href="#" onclick="table_sort('all_people_table', 'all_people_tbody', 'count_order');">123</a></span>
+				<span style="font-size: small"><hr /></span>
+				<div id="all_people_table_wrapper">
+				<table id="all_people_table" class="counter_table">
+						<tbody id="all_people_tbody">
 				{% for p_quot, p, ct in all_people %}
-				<li><a href="/?filter={{ p_quot }}">{{ p }}</a> ({{ ct }})</li>
+					<tr><td><a href="/?filter={{ p_quot }}">{{ p }}</a></td><td>{{ ct }}</td></tr>
 				{% endfor %}
-				</ul>
+						</tbody>
+				</table>
+				<input type="hidden" id="all_people_table_name_order" value="asc">
+				<input type="hidden" id="all_people_table_count_order" value="desc">
+				</div><!-- all tag table div -->
 			</div>
 
 			<!-- content div -->
@@ -142,6 +177,8 @@
 						<td colspan="3" style="align:center">
 							<div style="text-align: center">
 							<a href="javascript:expand_messages();">expand</a> | <a href="javascript:collapse_messages();">collapse</a>
+							&nbsp; &nbsp; &nbsp; &nbsp;
+							<a href="javascript:display_compact();">compact</a> | <a href="javascript:display_comfortable();">comfortable</a>
 							</div>
 						</td>
 					</tr>
@@ -156,11 +193,11 @@
 
 				<!-- note text -->
 				{% for note in notes_list %}
-				<p>
 				<div>
 					<a style="color: {{ focal_color }}" href="/note?id={{ note.timestamp }}">{{ note.title }}</a></b>
-					<br />
+					<span class="comfortable"><br /></span>
 					<span style="font-size: smaller">
+						<span class="compact">&nbsp; | &nbsp;</span>
 						{{ note.dttm_str }} &nbsp; | &nbsp;
 						{% for tag_quot, tag in note.tag_list %}
 							<a href="/?filter={{ tag_quot }}">{{ tag }}</a> &nbsp; | &nbsp;
@@ -172,16 +209,18 @@
 					</span>
 				</div>
 				<div class="msg_body">{{ note.note_body_md|safe }}<hr /></div>
-				</p>
+				<span class="comfortable"><p></p></span>
 				{% endfor %}
 
 			</div><!-- end of content div -->
+
+			</div><!-- list div -->
 
 			{% endif %}  <!-- context = list -->
 
 			{% if context == 'read' %}
 
-			<div style="flex-grow: 1; padding: 12px;" name="read_div" id="read_div">
+			<div style="padding: 12px;" name="read_info_div" id="read_info_div">
 
 			Tags:
 			{% for tag_quot, tag in tag_list %}
@@ -208,32 +247,50 @@
 			<input type="text" name="delete_text" id="delete_text" />
 			<input type="submit" value="Delete" />
 			</form>
+
+			</div> <!-- read_info_div -->
+
+			<br style="clear: both;" />
 			<hr />
 
+
+			<div style="padding: 12px" name="read_text_div" id="read_text_div">
 			{{ note_body_md|safe }}
+			</div>
+
+			<div style="padding: 12px;" name="show_images_div" id="show_images_div">
+			(images show up here)
+			</div>
+
+			<br style="clear: both;" />
 			<hr />
 
 
-			</div> <!-- read_div -->
+
+
 
 			{% endif %} <!-- context = read -->
 
 			{% if context == 'edit' %}
 
 				<div id="people_autocomplete_div" style="display:none">
-                <div style="background-color:#dddddd;padding:8px">
-                <b>Name Search: </b>
-                <input type="text" id="people_autocomplete_text_field" name="people_autocomplete_text_field">
-                </div>
+					<div style="background-color:#dddddd;padding:8px">
+					<b>Name Search: </b>
+					<input type="text" id="people_autocomplete_text_field" name="people_autocomplete_text_field">
+					</div>
                 </div>
 
 				<div style="flex-grow: 1; padding: 12px;" name="edit_div" id="edit_div">
-                <form id="save_form" action="/save" method="POST" enctype="application/x-www-form-urlencoded">
-                <input type="hidden" id="id" name="id" value="{{ id }}" />
-                <textarea style="width: 100%; height: 80vh;" form="save_form" id="text" name="text">{{ note_body }}</textarea>
-                <br />
-                <input type="submit" value="Save" />
-                </form>
+					<form id="save_form" action="/save" method="POST" enctype="application/x-www-form-urlencoded">
+					<input type="hidden" id="id" name="id" value="{{ id }}" />
+					<textarea style="width: 100%; height: 80vh;" form="save_form" id="text" name="text">{{ note_body }}</textarea>
+					<br />
+					<input type="submit" value="Save" />
+					</form>
+				</div>
+
+				<div style="flex-grow: 0; padding: 12px;" name="ul_image_div" id="ul_image_div">
+					(image upload form goes here)
 				</div>
 
 			{% endif %} <!-- context = edit -->
