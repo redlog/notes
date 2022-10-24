@@ -83,11 +83,25 @@ class Index(object):
         note_list.sort(key=f, reverse=True)
         return note_list
 
+    @staticmethod
+    def words_to_trigrams(words: list[str]) -> list[str]:
+        trigram_list: list[str] = []
+        for w in words:
+            w2 = '!' + w + '$'  # start and end tokens
+            for i in range(len(w2) - 2):
+                trigram = w2[i:i + 3]
+                trigram_list.append(trigram)
+        return trigram_list
+
     def _search(self, query: str) -> dict:
 
         doc_scores = {}
 
         words = re.split("[^a-z']", query.lower())
+
+        if self.cfg.INDEX_TRIGRAMS:
+            words = Index.words_to_trigrams(words)
+
         for w in set(words):
             if len(w) == 0:
                 continue
@@ -136,6 +150,8 @@ class Index(object):
 
                     # insert all the words into the dictionary
                     words = self.body_to_words(note_text)
+                    if cfg.INDEX_TRIGRAMS:
+                        words = Index.words_to_trigrams(words)
                     for w in set(words):
                         idx = word_indices.get(w, -1)
                         if idx == -1:
@@ -163,6 +179,28 @@ class Index(object):
         self.tfidf_inv_idx = [inv_idx[i] for i in range(len(self.tfidf_vocab))]
 
         self.save()
+
+    @staticmethod
+    def list_note_images(timestamp: int, cfg: Config) -> list[int]:
+        path = Index.get_path_from_timestamp(timestamp, cfg)
+        img_dir_path = os.path.join(path, str(timestamp))
+        if os.path.exists(img_dir_path):
+            (dirpath, dirnames, filenames) = list(os.walk(img_dir_path))[0]
+            img_refs = []
+            for filename in filenames:
+                m = re.match("([0123456789]+).png", filename)
+                if m:
+                    img_refs.append(int(m[1]))
+            img_refs.sort()
+            return img_refs
+        return []
+
+    @staticmethod
+    def get_image_path(timestamp: int, image_num: int, cfg: Config) -> (str, str):
+        path = Index.get_path_from_timestamp(timestamp, cfg)
+        img_dir_path = os.path.join(path, str(timestamp))
+        filename = "{0}.png".format(image_num)
+        return img_dir_path, filename
 
     @staticmethod
     def read_note_file(timestamp: int, cfg: Config) -> (Note, str):
@@ -217,6 +255,9 @@ class Index(object):
             tmp_dict = dict(zip(self.tfidf_vocab, range(len(self.tfidf_vocab))))
             _, body = self.read_note_file(note.timestamp, self.cfg)
             words = self.body_to_words(body)
+            if self.cfg.INDEX_TRIGRAMS:
+                words = Index.words_to_trigrams(words)
+
             ctr = Counter(words)
             for w in ctr:
 
@@ -252,6 +293,8 @@ class Index(object):
             tmp_dict = dict(zip(self.tfidf_vocab, range(len(self.tfidf_vocab))))
             _, body = self.read_note_file(note.timestamp, self.cfg)
             words = self.body_to_words(body)
+            if self.cfg.INDEX_TRIGRAMS:
+                words = Index.words_to_trigrams(words)
             ctr = Counter(words)
             for w in ctr:
 
@@ -285,9 +328,23 @@ class Index(object):
 
     @staticmethod
     def delete_note_file(timestamp: int, cfg: Config) -> None:
+
+        # delete the text file
         path = Index.get_path_from_timestamp(timestamp, cfg)
         fn = os.path.join(path, '{0}.md'.format(timestamp))
         os.unlink(fn)
+
+        # delete any images
+        for img_id in Index.list_note_images(timestamp, cfg):
+            img_dir_path, filename = Index.get_image_path(timestamp, img_id, cfg)
+            fn = os.path.join(img_dir_path, filename)
+            os.unlink(fn)
+
+        # remove the empty directory
+        dir_ = os.path.join(path, str(timestamp))
+        if os.path.exists(dir_):
+            os.rmdir(dir_)
+
 
     @staticmethod
     def save_note_file(timestamp: int, text: str, cfg: Config) -> None:

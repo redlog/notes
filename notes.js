@@ -10,6 +10,21 @@ function expand_messages() {
     }
 }
 
+function textarea_sans() {
+    var textarea = document.getElementById("big_text");
+    textarea.className = "txt_sans";
+}
+
+function textarea_mono() {
+    var textarea = document.getElementById("big_text");
+    textarea.className = "txt_mono";
+}
+
+function textarea_serif() {
+    var textarea = document.getElementById("big_text");
+    textarea.className = "txt_serif";
+}
+
 
 function display_helper(a, b) {
     var comp = document.querySelectorAll('.compact');
@@ -83,7 +98,7 @@ function people_autocomplete_listener(e)
     if (e.key == 'Enter')
     {
         // insert the name into the textarea
-        var d = document.getElementById('text');
+        var d = document.getElementById('big_text');
         var start = d.selectionStart;
         var end = d.selectionEnd;
 
@@ -96,7 +111,7 @@ function people_autocomplete_listener(e)
     {
         // hide and go back
         document.getElementById("people_autocomplete_div").style.display = "none";
-        document.getElementById('text').focus();
+        document.getElementById('big_text').focus();
     }
 }
 
@@ -109,7 +124,7 @@ function page_load(context)
 
     if (context == "edit")
     {
-        document.getElementById('text').addEventListener('keydown', text_area_listener);
+        document.getElementById('big_text').addEventListener('keydown', text_area_listener);
         document.getElementById('people_autocomplete_text_field').addEventListener('keyup',
             people_autocomplete_listener);
     }

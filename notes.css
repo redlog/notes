@@ -4,6 +4,34 @@ body { margin: 0px; }
 .msg_body { font-size: smaller; display: none; }
 form { margin: 0em; }
 
+
+td, th {
+    border: 1px solid black;
+    padding: 8px;
+}
+
+.counter_table td {
+    border: none;
+    padding: 0px;
+}
+
+.header_table td {
+    border: none;
+    padding: 0px;
+}
+
 table.counter_table td:nth-child(2) {
     text-align: right;
+}
+
+
+.txt_mono {
+}
+
+.txt_sans {
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+}
+
+.txt_serif {
+    font-family: "Times New Roman", Times, serif;
 }

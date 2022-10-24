@@ -13,6 +13,7 @@ class Config(object):
         self.FOCAL_COLOR = "#000000"
         self.DEFAULT_NN = 10
         self.HTTP_PORT = 8080
+        self.INDEX_TRIGRAMS = 0
 
         self.PLOT_LIMIT_DAYS = 30
         self.PLOT_LIMIT_WEEKS = 30
@@ -28,6 +29,7 @@ class Config(object):
             self.FOCAL_COLOR = cfg.get('FOCAL_COLOR', self.FOCAL_COLOR)
             self.DEFAULT_NN = cfg.get('DEFAULT_NN', self.DEFAULT_NN)
             self.HTTP_PORT = cfg.get('HTTP_PORT', self.HTTP_PORT)
+            self.INDEX_TRIGRAMS = cfg.get('INDEX_TRIGRAMS', self.INDEX_TRIGRAMS)
 
             self.PLOT_LIMIT_DAYS = cfg.get('PLOT_LIMIT_DAYS', self.PLOT_LIMIT_DAYS)
             self.PLOT_LIMIT_WEEKS = cfg.get('PLOT_LIMIT_DAYS', self.PLOT_LIMIT_WEEKS)

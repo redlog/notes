@@ -35,12 +35,12 @@
 
 		<!-- header bar -->
 		<div style="background-color: #dddddd; padding: 12px" id="header_div" name="header_div">
-			<table style="width: 100%">
+			<table class="header_table" style="width: 100%">
 				<tr>
 					<td style="width: 20%"><b><a href="/">Notes</a></b></td>
 					<td style="width: 60%" align="center">
 						<!-- TODO: make this table divs so the form doesn't complain -->
-						<table><!-- table to align form elements -->
+						<table  class="header_table" ><!-- table to align form elements -->
 							<form action="/" method="GET">
 							<tr>
 								<td>
@@ -129,7 +129,7 @@
 			<div style="flex-grow: 1; padding: 12px;" name="content_div" id="content_div">
 
 				<!-- navigation table -->
-				<table width="100%">
+				<table  class="header_table"  width="100%">
 					<tr>
 						<td colspan="3">
         				<div class="focal" style="text-align: center; font-size: small; text-decoration: italic">
@@ -194,7 +194,7 @@
 				<!-- note text -->
 				{% for note in notes_list %}
 				<div>
-					<a style="color: {{ focal_color }}" href="/note?id={{ note.timestamp }}">{{ note.title }}</a></b>
+					<a style="color: {{ focal_color }}" href="/note/{{ note.timestamp }}">{{ note.title }}</a></b>
 					<span class="comfortable"><br /></span>
 					<span style="font-size: smaller">
 						<span class="compact">&nbsp; | &nbsp;</span>
@@ -205,7 +205,7 @@
 						{% for p_quot, p in note.people_list %}
 							<a href="/?filter={{ p_quot }}">{{ p }}</a> &nbsp; | &nbsp;
 						{% endfor %}
-						<a href="/edit?id={{ note.timestamp }}">edit</a> &nbsp; | &nbsp; <a href="/clone?id={{ note.timestamp }}">clone</a>
+						<a href="/edit/{{ note.timestamp }}">edit</a> &nbsp; | &nbsp; <a href="/clone/{{ note.timestamp }}">clone</a>
 					</span>
 				</div>
 				<div class="msg_body">{{ note.note_body_md|safe }}<hr /></div>
@@ -236,8 +236,8 @@
 			Modified: {{ last_edit_dttm }}</i> <br />
 			Filename: {{ filename }}<br />
 
-			<a href="/edit?id={{ id }}">edit</a> &nbsp;
-			| &nbsp; <a href="/clone?id={{ id }}">clone</a> &nbsp;
+			<a href="/edit/{{ id }}">edit</a> &nbsp;
+			| &nbsp; <a href="/clone/{{ id }}">clone</a> &nbsp;
 			| &nbsp; <a class="alert" href="javascript:expand_delete();">delete</a>
 			<form id="delete_form" style="display: none" name="delete_form" action="/delete" method="POST",
 				enctype="application/x-www-form-urlencoded">
@@ -253,16 +253,29 @@
 			<br style="clear: both;" />
 			<hr />
 
+			<div style="display: flex">
 
-			<div style="padding: 12px" name="read_text_div" id="read_text_div">
+			<div style="flex-grow: 1; padding: 12px" name="read_text_div" id="read_text_div">
 			{{ note_body_md|safe }}
 			</div>
 
-			<div style="padding: 12px;" name="show_images_div" id="show_images_div">
-			(images show up here)
+			<div style="flex-grow: 0; padding: 12px;" name="show_images_div" id="show_images_div">
+
+				{% if img_refs|length > 0 %}
+
+					<p><b>Images ({{ img_refs|length }}):</b></p>
+
+					{% for img_ref in img_refs %}
+					<p>
+						<a href="/image/{{ id }}/{{ img_ref }}" target="_new"><img style="max-height:100px; max-width: 100%" src="/image/{{ id }}/{{ img_ref }}"></a>
+					</p>
+					{% endfor %}
+
+				{% endif %}
+
 			</div>
 
-			<br style="clear: both;" />
+				</div><!-- flex -->
 			<hr />
 
 
@@ -273,6 +286,8 @@
 
 			{% if context == 'edit' %}
 
+			<div style="display:flex">
+
 				<div id="people_autocomplete_div" style="display:none">
 					<div style="background-color:#dddddd;padding:8px">
 					<b>Name Search: </b>
@@ -281,17 +296,28 @@
                 </div>
 
 				<div style="flex-grow: 1; padding: 12px;" name="edit_div" id="edit_div">
+
+					<p style="text-align: center;">
+					Font:
+					<a href="#" onclick="textarea_mono();">mono</a> |
+					<a href="#" onclick="textarea_sans();">sans</a> |
+					<a href="#" onclick="textarea_serif();">serif</a>
+					</p>
+
 					<form id="save_form" action="/save" method="POST" enctype="application/x-www-form-urlencoded">
 					<input type="hidden" id="id" name="id" value="{{ id }}" />
-					<textarea style="width: 100%; height: 80vh;" form="save_form" id="text" name="text">{{ note_body }}</textarea>
+					<textarea class="txt_std" style="width: 100%; height: 80vh;" form="save_form" id="big_text" name="big_text">{{ note_body }}</textarea>
 					<br />
 					<input type="submit" value="Save" />
 					</form>
+					<button onclick="window.location.href='/note/{{ id }}';">Cancel</button>
 				</div>
 
 				<div style="flex-grow: 0; padding: 12px;" name="ul_image_div" id="ul_image_div">
-					(image upload form goes here)
+					<iframe style="height: 80vh" src="/image_edit_list/{{ id }}" title=""></iframe>
 				</div>
+
+				</div><!-- flex -->
 
 			{% endif %} <!-- context = edit -->
 

@@ -1,0 +1,28 @@
+<html>
+<head>
+	<link rel="stylesheet" href="{{ url_for('static', filename = 'notes.css') }}" />
+	<style>
+		a { color: {{ link_color }} }
+		.alert { color: {{ alert_color }} }
+		.focal { color: {{ focal_color }} }
+	</style>
+</head>
+
+<body>
+	<form id="image_form" action="/upload" method="POST" enctype="multipart/form-data">
+		<input type="hidden" id="id" name="id" value="{{ id }}" />
+		<input type="file" id="img_file" name="img_file">
+		<br />
+		<input type="submit" value="Upload" />
+	</form>
+	{% if img_refs|length > 0 %}
+		{% for img_ref in img_refs %}
+    		<hr />
+			<p>
+				<b>[<a class="alert" href="/image_del/{{ id }}/{{ img_ref }}">X</a>] Image {{ img_ref }}</b><br />
+				<a href="/image/{{ id }}/{{ img_ref }}" target="_new"><img style="max-height:100px; max-width: 100%" src="/image/{{ id }}/{{ img_ref }}"></a>
+			</p>
+		{% endfor %}
+	{% endif %}
+</body>
+</html>

@@ -1,7 +1,9 @@
 import os
 import sys
 import math
-from flask import Flask, render_template, redirect, Response, request
+import time
+
+from flask import Flask, render_template, redirect, Response, request, send_file
 from urllib.parse import quote, unquote
 
 from typing import Union
@@ -149,6 +151,14 @@ def list_notes() -> (str, int):
     for n in note_subset:
         _, note_body = Index.read_note_file(n.timestamp, cfg)
         note_body_md = markdown.markdown(note_body, extensions=['tables', 'attr_list'])
+
+        # highlighting search results is imperfect.  It is looking for the tokens in the search query, so we
+        # can't highlight the actual trigrams that we're indexing on when trigram search, and since it uses
+        # the tokens as substrings, it'll find them even when they are _not_ in the index, in word-based search
+        if len(search):
+            for s in search.split():
+                note_body_md = note_body_md.replace(s, "<span style=\"background-color: #ffff00\">{0}</span>".format(s))
+
         d = {
             'tag_list': [(quote(t), t) for t in n.tags],
             'people_list': [(quote(p), p) for p in n.people],
@@ -179,27 +189,46 @@ def list_notes() -> (str, int):
     return render_template('notes.html', **d), 200
 
 
-@app.route('/note', methods=['GET'])
-def read_note() -> (str, int):
+@app.route('/image/<int:note_id>/<int:img_num>')
+def read_image(note_id: int, img_num: int) -> (str, int):
+    path, fn = Index.get_image_path(note_id, img_num, cfg)
+    filename = os.path.join(path, fn)
+    return send_file(filename, mimetype='image/png')
 
-    id_: int = request.args.get('id', 0, int)
+
+@app.route('/note/<int:note_id>', methods=['GET'])
+def read_note(note_id: int) -> (str, int):
 
     try:
-        note, note_body = Index.read_note_file(id_, cfg)
-        note_body_md = markdown.markdown(note_body, extensions=['tables', 'attr_list'])
-    except FileNotFoundError:
-        return "<html><body>File not found: {0}</body></html>".format(id_), 404
+        note, note_body = Index.read_note_file(note_id, cfg)
 
-    dttm = datetime.datetime.fromtimestamp(id_)
+        # check note body for references to images
+        image_refs = map(int, re.findall("<([0123456789]+)>", note_body))
+        print("Image refs: " + str(image_refs))
+        for image_num in image_refs:
+            u = "/image/{0}/{1}".format(note_id, image_num)
+            s = "<a href=\"{0}\" target=\"_new\"><img style=\"max-height:100px; max-width: 100%\" src=\"{0}\"></a>".format(u)
+            note_body = re.sub("<{0}>".format(image_num), s, note_body)
+
+        note_body_md = markdown.markdown(note_body, extensions=['tables', 'attr_list'])
+
+        # if any images exist, put them at the bottom
+        img_refs = idx.list_note_images(note_id, cfg)
+
+    except FileNotFoundError:
+        return "<html><body>File not found: {0}</body></html>".format(note_id), 404
+
+    dttm = datetime.datetime.fromtimestamp(note_id)
     last_edit_dttm = datetime.datetime.fromtimestamp(os.path.getmtime(note.get_file_name(cfg)))
 
     d = {'context': 'read',
-         'id': id_,
+         'id': note_id,
          'tag_list': [(quote(t), t) for t in note.tags],
          'people_list': [(quote(p), p) for p in note.people],
          'timestamp_str': str(dttm)[:19],
          'filename': note.get_file_name(cfg),
          'note_body_md': note_body_md,
+         'img_refs': img_refs,
          'last_edit_dttm': str(last_edit_dttm)[:19],
          'page_title': note.title,
          'link_color': cfg.get_link_color(), 'alert_color': cfg.get_alert_color(), 'focal_color': cfg.get_focal_color()
@@ -208,34 +237,87 @@ def read_note() -> (str, int):
     return render_template("notes.html", **d), 200
 
 
-@app.route('/edit', methods=['GET'])
-def edit_note() -> (str, int):
+@app.route('/image_del/<int:note_id>/<int:img_num>')
+def delete_image(note_id: int, img_num: int) -> (str, int):
+    path, fn = Index.get_image_path(note_id, img_num, cfg)
+    filename = os.path.join(path, fn)
+    os.unlink(filename)
+    time.sleep(1)  # give the os a second to remove the file cleanly
+    return redirect("/image_edit_list/{0}".format(note_id), code=302)
 
-    id_: int = request.args.get('id', 0, int)
+
+@app.route('/image_edit_list/<int:note_id>', methods=['GET'])
+def show_image_edit_list(note_id: int) -> (str, int):
+
+    # if any images exist, put them at the bottom
+    img_refs = idx.list_note_images(note_id, cfg)
+
+    d = {
+        'id': note_id,
+        'img_refs': img_refs,
+        'link_color': cfg.get_link_color(), 'alert_color': cfg.get_alert_color(), 'focal_color': cfg.get_focal_color()
+    }
+
+    return render_template("image_edit_list.html", **d)
+
+
+@app.route('/edit/<int:note_id>', methods=['GET'])
+def edit_note(note_id: int) -> (str, int):
+
     try:
-        note, note_body = Index.read_note_file(id_, cfg)
+        note, note_body = Index.read_note_file(note_id, cfg)
     except FileNotFoundError:
-        return "<html><body>File not found: {0}</body></html>".format(id_), 404
+        return "<html><body>File not found: {0}</body></html>".format(note_id), 404
 
     pl = idx.get_people()
     pl = list(map(itemgetter(0), pl))
 
     d = {'context': 'edit',
-         'id': id_,
+         'id': note_id,
          'note_body': note_body,
          'page_title': note.title,
          'people_list': pl,
-         'link_color': cfg.get_link_color(), 'alert_color': cfg.get_alert_color(), 'focal_color': cfg.get_focal_color()
+         'link_color': cfg.get_link_color(), 'alert_color': cfg.get_alert_color(), 'focal_color': cfg.get_focal_color(),
          }
 
     return render_template("notes.html", **d), 200
+
+
+@app.route('/upload', methods=['POST'])
+def upload_image() -> Union[Response, tuple[str, int]]:
+
+    id_ = request.form.get('id', 0, int)
+    img_refs = idx.list_note_images(id_, cfg)
+    next_id = 1
+    if img_refs:
+        next_id = max(img_refs) + 1
+
+    ok_str = "<br /><br /><a href=\"/image_edit_list/{0}\">OK</a>".format(id_)
+
+    if 'img_file' not in request.files:
+        return "<html><body>" + "No file part" + ok_str + "</body></html>", 400
+
+    file = request.files['img_file']
+    if file.filename == '':
+        return "<html><body>" + "No selected file" + ok_str + "</body></html>", 400
+
+    if not file.filename.lower().endswith(".png"):
+        return "<html><body>" + "File must be png" + ok_str + "</body></html>", 400
+
+    path, fn = Index.get_image_path(id_, next_id, cfg)
+    os.makedirs(path, exist_ok=True)
+    filename = os.path.join(path, fn)
+    file.save(filename)
+
+    html = "<html><body>" + "Image saved as <" + str(next_id) + ">" + "</body></html>"
+    return redirect("/image_edit_list/{0}".format(id_), code=302)
 
 
 @app.route('/save', methods=['POST'])
 def save_note() -> Union[Response, tuple[str, int]]:
 
     id_ = request.form.get('id', 0, int)
-    text_ = request.form.get('text', "", str)
+    text_ = request.form.get('big_text', "", str)
 
     try:
         # remove the old one from the index
@@ -251,7 +333,7 @@ def save_note() -> Union[Response, tuple[str, int]]:
     except Exception as e:
         return "<html><body>Error: {0}</body></html>".format(str(e)), 500
 
-    return redirect("/note?id={0}".format(id_), code=302)
+    return redirect("/note/{0}".format(id_), code=302)
 
 
 @app.route('/delete', methods=['POST'])
@@ -267,27 +349,26 @@ def delete_note() -> Response:
         return redirect("/", code=302)
     else:
         # go back
-        url = "/note?id={0}".format(id_)
+        url = "/note/{0}".format(id_)
         return redirect(url, code=302)
 
 
 @app.route('/new', methods=['GET'])
 def new_note() -> Response:
     unix_time = idx.new_file()
-    url = "/edit?id={0}".format(unix_time)
+    url = "/edit/{0}".format(unix_time)
     return redirect(url, code=302)
 
 
-@app.route('/clone', methods=['GET'])
-def clone_note() -> Union[Response, tuple[str, int]]:
-    id_: int = request.args.get('id', 0, int)
+@app.route('/clone/<int:note_id>', methods=['GET'])
+def clone_note(note_id: int) -> Union[Response, tuple[str, int]]:
     try:
-        note, _ = Index.read_note_file(id_, cfg)
+        note, _ = Index.read_note_file(note_id, cfg)
     except FileNotFoundError:
-        return "<html><body>File not found: {0}</body></html>".format(id_), 404
+        return "<html><body>File not found: {0}</body></html>".format(note_id), 404
 
     unix_time = idx.new_file(tag_list=note.tags, people_list=note.people, title=note.title)
-    url = "/edit?id={0}".format(unix_time)
+    url = "/edit/{0}".format(unix_time)
     return redirect(url, code=302)
 
 
@@ -307,4 +388,4 @@ def run_app(cfg_: Config) -> None:
     cfg = cfg_
     idx = Index()
     idx.load(cfg)
-    app.run(debug=True, port=cfg.get_http_port())
+    app.run(debug=False, port=cfg.get_http_port())
