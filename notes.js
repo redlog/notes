@@ -10,6 +10,13 @@ function expand_messages() {
     }
 }
 
+function collapse_messages() {
+    var messages = document.querySelectorAll(".msg_body");
+    for (var i = 0; i < messages.length; i++) {
+        messages[i].style.display = "none";
+    }
+}
+
 function textarea_sans() {
     var textarea = document.getElementById("big_text");
     textarea.className = "txt_sans";
@@ -50,12 +57,16 @@ function display_comfortable()
 }
 
 
-function collapse_messages() {
-    var messages = document.querySelectorAll(".msg_body");
-    for (var i = 0; i < messages.length; i++) {
-        messages[i].style.display = "none";
-    }
+function image_edit_frame_show() {
+    var fr = document.getElementById("ul_image_div");
+    fr.style.display = "";
 }
+
+function image_edit_frame_hide() {
+    var fr = document.getElementById("ul_image_div");
+    fr.style.display = "none";
+}
+
 
 // adapted from: https://stackoverflow.com/questions/6637341/use-tab-to-indent-in-textarea
 function text_area_listener(e)
@@ -119,7 +130,7 @@ function page_load(context)
 {
     if (context == 'list')
     {
-        display_comfortable();
+        display_compact();
     }
 
     if (context == "edit")
@@ -150,6 +161,23 @@ function show_people_autocomplete()
     d.focus();
 }
 
+function compare(v1, v2, recordkeeper)
+{
+    if (recordkeeper == 'count_order')
+    {
+        i1 = parseInt(v1);
+        i2 = parseInt(v2);
+        //alert("v1 = " + v1 + "   v2 = " + v2)
+        if (i1 > i2) { return 1; }
+        if (i1 < i2) { return -1; }
+        return 0;
+    }
+    else
+    {
+        return v1.localeCompare(v2);
+    }
+}
+
 
 function table_sort(table_id, tbody_id, recordkeeper)
 {
@@ -157,24 +185,26 @@ function table_sort(table_id, tbody_id, recordkeeper)
     var tbody = $('#' + tbody_id);
 
     sort_order_element = table_id + '_' + recordkeeper;
-    //alert("sort order element = " + sort_order_element);
     sort_order = document.getElementById(sort_order_element).value;
-
-    //alert("sorting " + table_id + "-" + tbody_id + " by " + recordkeeper + " (" + sort_order + ")")
+    var idx = 'first';
+    if (recordkeeper == 'count_order') {
+        idx = 'last';
+    }
 
     tbody.find('tr').sort(
         function(a, b)
         {
-            //alert("a = " + a + "   " + "b = " + b);
-            if(sort_order == 'asc')
+            var at = $('td:'+idx, a).text();
+            var bt = $('td:'+idx, b).text();
+
+            if (sort_order == 'asc')
             {
-                return $('td:first', a).text().localeCompare($('td:first', b).text());
+                return compare(at, bt, recordkeeper);
             }
             else
             {
-                return $('td:first', b).text().localeCompare($('td:first', a).text());
+                return compare(bt, at, recordkeeper);
             }
-
         }
     ).appendTo(tbody);
 
@@ -183,4 +213,29 @@ function table_sort(table_id, tbody_id, recordkeeper)
     } else {
         document.getElementById(table_id + '_' + recordkeeper).value = "asc";
     }
+}
+
+function submit_list_form()
+{
+    frm = document.getElementById('list_form');
+    frm.submit();
+}
+
+// by default a new search should sort by decreasing relevance
+function new_search() {
+    srch = document.getElementById('input_search').value;
+    if (srch.length > 0) {
+        var v = document.getElementById('input_sk');
+        v.value = 'relevance';
+        var w = document.getElementById('input_so');
+        w.value = 'desc';
+    }
+    submit_list_form();
+}
+
+function go_to_page(pg_num)
+{
+    var v = document.getElementById('input_pg');
+    v.value = pg_num;
+    submit_list_form();
 }

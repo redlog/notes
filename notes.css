@@ -4,6 +4,9 @@ body { margin: 0px; }
 .msg_body { font-size: smaller; display: none; }
 form { margin: 0em; }
 
+img {
+    border: 1px solid #888888;
+}
 
 td, th {
     border: 1px solid black;
@@ -23,7 +26,6 @@ td, th {
 table.counter_table td:nth-child(2) {
     text-align: right;
 }
-
 
 .txt_mono {
 }

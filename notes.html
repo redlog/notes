@@ -40,32 +40,32 @@
 					<td style="width: 20%"><b><a href="/">Notes</a></b></td>
 					<td style="width: 60%" align="center">
 						<!-- TODO: make this table divs so the form doesn't complain -->
+						<form name="list_form" id="list_form" action="/" method="GET">
+						<input name="pg" type="hidden" value="1" id="input_pg" />
+						<input name="nn" type="hidden" value="{{ nn }}" id="input_nn" />
+						<input name="sk" type="hidden" value="{{ sk }}" id="input_sk" />
+						<input name="so" type="hidden" value="{{ so }}" id="input_so" />
+
 						<table  class="header_table" ><!-- table to align form elements -->
-							<form action="/" method="GET">
 							<tr>
 								<td>
 								<b>Search: </b>
 							</td><td>
-								<input name="search" size="50" type="text">
-							</td><td>
-								<input type="submit" value="Go" />
-
+								<input name="search" id="input_search" size="50" type="text" value="{{ search_str }}">
 							</td>
 							</tr>
-							</form><!-- search form -->
-							<form action="/" method="GET">
 							<tr>
 								<td>
 								<b>Filter: </b>
 							</td><td>
-								<input name="filter" size="50" type="text">
-							</td><td>
-								<input type="submit" value="Go" />
-
+								<input name="filter" size="50" type="text" value="{{ filter_str }}">
 							</td>
 							</tr>
-							</form><!-- filter form -->
+							<tr>
+								<td colspan="2"><input type="button" onclick="javascript:new_search();" value="Go"></td>
+							</tr>
 						</table><!-- table to align form elements -->
+						</form> <!-- list form -->
 
 					</td>
 					<td align="right" style="width: 20%">
@@ -87,9 +87,9 @@
 			<div style="flex-grow: 0; background-color: #c0c0c0; padding: 12px;" name="tags_div" id="tags_div">
 			<b>All Tags</b>
 				<br />
-				<span style="font-size: small"><a href="#" onclick="table_sort('all_tag_table', 'all_tag_tbody', 'name_order');">abc</a></span>
+				<span style="font-size: small"><a href="javascript:table_sort('all_tag_table', 'all_tag_tbody', 'name_order');">abc</a></span>
 				<span style="font-size: small">|</span>
-				<span style="font-size: small"><a href="#" onclick="table_sort('all_tag_table', 'all_tag_tbody', 'count_order');">123</a></span>
+				<span style="font-size: small"><a href="javascript:table_sort('all_tag_table', 'all_tag_tbody', 'count_order');">123</a></span>
 				<span style="font-size: small"><hr /></span>
 				<div id="all_tag_table_wrapper">
 				<table id="all_tag_table" class="counter_table">
@@ -108,9 +108,9 @@
 			<div style="flex-grow: 0; background-color: #c0c0c0; padding: 12px;" name="people_div" id="people_div">
 			<b>All People</b>
 				<br />
-				<span style="font-size: small"><a href="#" onclick="table_sort('all_people_table', 'all_people_tbody', 'name_order');">abc</a></span>
+				<span style="font-size: small"><a href="javascript:table_sort('all_people_table', 'all_people_tbody', 'name_order');">abc</a></span>
 				<span style="font-size: small">|</span>
-				<span style="font-size: small"><a href="#" onclick="table_sort('all_people_table', 'all_people_tbody', 'count_order');">123</a></span>
+				<span style="font-size: small"><a href="javascript:table_sort('all_people_table', 'all_people_tbody', 'count_order');">123</a></span>
 				<span style="font-size: small"><hr /></span>
 				<div id="all_people_table_wrapper">
 				<table id="all_people_table" class="counter_table">
@@ -152,7 +152,7 @@
 					<tr>
 						<td align="left">
 							{% if pg > 1 %}
-							<a href="/?filter={{ filter_str }}&search={{ search_str }}&nn={{ nn }}&pg={{ pg - 1 }}">Prev</a>
+							<a href="javascript:go_to_page({{ pg - 1 }});">Prev</a>
 							{% endif %}
 						</td>
 						<td>
@@ -162,14 +162,14 @@
 								{% if n == pg %}
 								{{ n }}
 								{% else %}
-								<a href="/?filter={{ filter_str }}&search={{ search_str }}&nn={{ nn }}&pg={{ n }}">{{ n }}</a>
+								<a href="javascript:go_to_page({{ n }});">{{ n }}</a>
 								{% endif %}
 							{% endfor %}
 							</p>
 						</td>
 						<td align="right">
 							{% if pg < n_pages %}
-							<a href="/?filter={{ filter_str }}&search={{ search_str }}&nn={{ nn }}&pg={{ pg + 1 }}">Next</a>
+							<a href="javascript:go_to_page({{ pg + 1 }});">Next</a>
 							{% endif %}
 						</td>
 					</tr>
@@ -199,6 +199,9 @@
 					<span style="font-size: smaller">
 						<span class="compact">&nbsp; | &nbsp;</span>
 						{{ note.dttm_str }} &nbsp; | &nbsp;
+						{% if search_str|length > 0 %}
+						relevance: {{ "%.4f"|format(note.score|float) }}  |
+						{% endif %}
 						{% for tag_quot, tag in note.tag_list %}
 							<a href="/?filter={{ tag_quot }}">{{ tag }}</a> &nbsp; | &nbsp;
 						{% endfor %}
@@ -299,21 +302,23 @@
 
 					<p style="text-align: center;">
 					Font:
-					<a href="#" onclick="textarea_mono();">mono</a> |
-					<a href="#" onclick="textarea_sans();">sans</a> |
-					<a href="#" onclick="textarea_serif();">serif</a>
+					<a href="javascript:textarea_mono();">mono</a> |
+					<a href="javascript:textarea_sans();">sans</a> |
+					<a href="javascript:textarea_serif();">serif</a>
+					&nbsp; &nbsp; &nbsp;
+					Image frame: <a href="javascript:image_edit_frame_show();">show</a> | <a href="javascript:image_edit_frame_hide();">hide</a>
 					</p>
 
 					<form id="save_form" action="/save" method="POST" enctype="application/x-www-form-urlencoded">
 					<input type="hidden" id="id" name="id" value="{{ id }}" />
-					<textarea class="txt_std" style="width: 100%; height: 80vh;" form="save_form" id="big_text" name="big_text">{{ note_body }}</textarea>
+					<textarea class="txt_sans" style="width: 100%; height: 80vh;" form="save_form" id="big_text" name="big_text">{{ note_body }}</textarea>
 					<br />
 					<input type="submit" value="Save" />
 					</form>
 					<button onclick="window.location.href='/note/{{ id }}';">Cancel</button>
 				</div>
 
-				<div style="flex-grow: 0; padding: 12px;" name="ul_image_div" id="ul_image_div">
+				<div style="flex-grow: 0; padding: 12px; display:none" name="ul_image_div" id="ul_image_div">
 					<iframe style="height: 80vh" src="/image_edit_list/{{ id }}" title=""></iframe>
 				</div>
 
