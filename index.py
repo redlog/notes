@@ -17,7 +17,7 @@ class Index(object):
 
         self.cfg = None
 
-        self.notes = []
+        self.notes: list[Note] = []
         self.tags = Counter()
         self.people = Counter()
 
@@ -76,11 +76,10 @@ class Index(object):
         return d
 
     def get_notes_search(self, query: str) -> list[Note]:
-
         doc_scores = self._search(query)  # dict of { doc: score }
         note_list = [n for n in self.notes if n.timestamp in doc_scores]
-        f = (lambda note: doc_scores[note.timestamp])
-        note_list.sort(key=f, reverse=True)
+        for n in note_list:
+            n.score = doc_scores[n.timestamp]
         return note_list
 
     @staticmethod
@@ -100,7 +99,7 @@ class Index(object):
         words = re.split("[^a-z']", query.lower())
 
         if self.cfg.INDEX_TRIGRAMS:
-            words = Index.words_to_trigrams(words)
+            words += Index.words_to_trigrams(words)
 
         for w in set(words):
             if len(w) == 0:
@@ -151,7 +150,7 @@ class Index(object):
                     # insert all the words into the dictionary
                     words = self.body_to_words(note_text)
                     if cfg.INDEX_TRIGRAMS:
-                        words = Index.words_to_trigrams(words)
+                        words += Index.words_to_trigrams(words)
                     for w in set(words):
                         idx = word_indices.get(w, -1)
                         if idx == -1:
@@ -256,7 +255,7 @@ class Index(object):
             _, body = self.read_note_file(note.timestamp, self.cfg)
             words = self.body_to_words(body)
             if self.cfg.INDEX_TRIGRAMS:
-                words = Index.words_to_trigrams(words)
+                words += Index.words_to_trigrams(words)
 
             ctr = Counter(words)
             for w in ctr:
@@ -294,7 +293,7 @@ class Index(object):
             _, body = self.read_note_file(note.timestamp, self.cfg)
             words = self.body_to_words(body)
             if self.cfg.INDEX_TRIGRAMS:
-                words = Index.words_to_trigrams(words)
+                words += Index.words_to_trigrams(words)
             ctr = Counter(words)
             for w in ctr:
 

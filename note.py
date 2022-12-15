@@ -11,6 +11,7 @@ class Note(object):
         self.people = people
         self.title = title
         self.timestamp = timestamp
+        self.score = 0.0
 
     def to_json(self) -> dict:
         return {'tags': self.tags, 'people': self.people, 'title': self.title, 'timestamp': self.timestamp}

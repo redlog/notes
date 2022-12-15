@@ -27,18 +27,6 @@ cfg: Config = None
 idx: Index = None
 
 
-def get_related_tags(note_list: list[Note], filter_: list[str]) -> list[(str, float)]:
-    rt = Counter()
-    for note in note_list:
-        rt.update(note.tags)
-    for f in filter_:
-        if f in rt:
-            del rt[f]
-    rt = [(t, rt[t]) for t in rt]
-    rt.sort(key=itemgetter(1), reverse=True)
-    return rt
-
-
 def make_date_histogram(note_list: list[Note], color: str) -> BytesIO:
     # grab the dates so we can make a histogram
     dates = [datetime.datetime.fromtimestamp(note.timestamp) for note in note_list]
@@ -114,7 +102,8 @@ def list_notes() -> (str, int):
     filter_raw: str = request.args.get('filter', "", str)
     pg: int = request.args.get('pg', 1, int)
     nn: int = request.args.get('nn', cfg.get_num_notes_per_page(), int)
-    id_: int = request.args.get('id', 0, int)
+    sk: str = request.args.get('sk', ('search' if len(search) else 'timestamp'), str)
+    so: str = request.args.get('so', 'desc', str)
 
     if len(search):
         search = unquote(search)
@@ -126,10 +115,12 @@ def list_notes() -> (str, int):
     list_of_notes = idx.get_notes_search(search) if search else idx.get_notes()
     list_of_notes = [d for d in list_of_notes if matches_filter(d, filter_list)]
 
-    # related tags
-    related_tags = []
-    if len(filter_list):
-        related_tags = get_related_tags(list_of_notes, filter_list)
+    # sort the list of notes
+    fn = (lambda z: z.timestamp)  # default
+    if sk == 'relevance':
+        fn = (lambda z: z.score)
+
+    list_of_notes.sort(key=fn, reverse=(so == 'desc'))
 
     # paginate
     total_notes = len(list_of_notes)
@@ -165,7 +156,8 @@ def list_notes() -> (str, int):
             'timestamp': n.timestamp,
             'dttm_str': str(datetime.datetime.fromtimestamp(n.timestamp))[:19],
             'note_body_md': note_body_md,
-            'title': n.title
+            'title': n.title,
+            'score': n.score
         }
         notes_list.append(d)
 
@@ -181,9 +173,11 @@ def list_notes() -> (str, int):
          'link_color': cfg.get_link_color(), 'alert_color': cfg.get_alert_color(), 'focal_color': cfg.get_focal_color(),
          'min_note': min_, 'max_note': max_, 'n_pages': n_pages,
          'pg': pg, 'nn': nn, 'total_notes': total_notes,
-         'search_str': search, 'filter_str': ', '.join(filter_list), 'id': id_,
+         'search_str': search, 'filter_str': ', '.join(filter_list),
          'notes_list': notes_list,
-         'imgbytes': b64encode(imgbytes).decode()
+         'imgbytes': b64encode(imgbytes).decode(),
+         'sk': sk,
+         'so': so
          }
 
     return render_template('notes.html', **d), 200
@@ -204,7 +198,7 @@ def read_note(note_id: int) -> (str, int):
 
         # check note body for references to images
         image_refs = map(int, re.findall("<([0123456789]+)>", note_body))
-        print("Image refs: " + str(image_refs))
+
         for image_num in image_refs:
             u = "/image/{0}/{1}".format(note_id, image_num)
             s = "<a href=\"{0}\" target=\"_new\"><img style=\"max-height:100px; max-width: 100%\" src=\"{0}\"></a>".format(u)
@@ -214,6 +208,11 @@ def read_note(note_id: int) -> (str, int):
 
         # if any images exist, put them at the bottom
         img_refs = idx.list_note_images(note_id, cfg)
+
+        # check note body of references to other notes, to tags, and to people
+        note_body_md = re.sub("note:([0123456789]+)", r'<a href="/note/\1">\1</a>', note_body_md)
+        note_body_md = re.sub("#([a-z_\\d]+)", r'<a href="/?filter=%23\1">#\1</a>', note_body_md)
+        note_body_md = re.sub("@([a-z_\\d]+)", r'<a href="/?filter=%40\1">@\1</a>', note_body_md)
 
     except FileNotFoundError:
         return "<html><body>File not found: {0}</body></html>".format(note_id), 404
